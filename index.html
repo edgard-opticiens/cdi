@@ -853,11 +853,11 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     sigBlock.push({
       text: [
         { text: '✍', font: 'Sym', fontSize: 8, bold: false },
-        { text: ' Les parties feront précéder leur signature de la mention manuscrite “ ', bold: true, fontSize: 8 },
-        { text: 'Lu et approuvé - Bon pour accord ', bold: true, fontSize: 8, color: RED, decoration: 'underline' },
-        { text: '”. En outre, elles apposeront leur ', bold: true, fontSize: 8 },
-        { text: 'paraphe au bas de chaque page', bold: true, fontSize: 8, color: RED, decoration: 'underline' },
-        { text: ' de tous les exemplaires du présent contrat.', bold: true, fontSize: 8 }
+        { text: ' Les parties feront précéder leur signature de la mention manuscrite “ ', bold: true, fontSize: 8, background: '#FFFF00' },
+        { text: 'Lu et approuvé - Bon pour accord ', bold: true, fontSize: 8, color: RED, decoration: 'underline', background: '#FFFF00' },
+        { text: '”. En outre, elles apposeront leur ', bold: true, fontSize: 8, background: '#FFFF00' },
+        { text: 'paraphe au bas de chaque page', bold: true, fontSize: 8, color: RED, decoration: 'underline', background: '#FFFF00' },
+        { text: ' de tous les exemplaires du présent contrat.', bold: true, fontSize: 8, background: '#FFFF00' }
       ], alignment: 'justify'
     });
     content.push({ unbreakable: true, stack: tail.concat(sigBlock) });
@@ -1105,7 +1105,7 @@ function docxPlan(C){return {
       if (!hasStart && b.parentNode) b.parentNode.removeChild(b);
     });
     // plus aucune surbrillance + marqueurs de pagination périmés
-    Array.prototype.slice.call(doc.getElementsByTagNameNS(WNS, 'highlight')).forEach(h => h.parentNode.removeChild(h));
+    Array.prototype.slice.call(doc.getElementsByTagNameNS(WNS, 'highlight')).forEach(h => { if (!ps[194].contains(h)) h.parentNode.removeChild(h); }); // la mention finale reste surlignée, comme dans la trame
     Array.prototype.slice.call(doc.getElementsByTagNameNS(WNS, 'lastRenderedPageBreak')).forEach(h => h.parentNode.removeChild(h));
 
     let out = new XMLSerializer().serializeToString(doc);
