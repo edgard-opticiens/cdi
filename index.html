@@ -102,9 +102,19 @@ footer{max-width:1240px;margin:0 auto;padding:0 20px 30px;font-size:12px;color:v
 .priv{display:flex;gap:8px;align-items:flex-start}
 @media print{body>*{display:none}}
 .gdo-only[hidden]{display:none}
+
+body.locked>*:not(#gate){display:none!important}
+#gate{display:none;min-height:100vh;align-items:center;justify-content:center;padding:16px;background:#faf8f4}
+body.locked #gate{display:flex}
+#gate .box{background:#fff;border:1px solid #e2dccf;border-radius:14px;padding:28px 24px;max-width:360px;width:100%;box-shadow:0 6px 24px rgba(0,0,0,.07);text-align:center}
+#gate h1{font-size:18px;margin:0 0 6px}#gate p{font-size:13px;color:#666;margin:0 0 16px}
+#gate input{width:100%;padding:10px 12px;font-size:16px;border:1px solid #ccc;border-radius:8px;box-sizing:border-box;text-align:center;letter-spacing:3px}
+#gate button{margin-top:12px;width:100%;padding:10px;font-size:15px;border:0;border-radius:8px;background:#b8903a;color:#fff;cursor:pointer}
+#gate button:disabled{opacity:.6;cursor:wait}#gate .err{color:#b00020;font-size:13px;min-height:18px;margin-top:10px}
 </style>
 </head>
-<body>
+<body class="locked">
+<div id="gate"><form class="box" id="gateForm" autocomplete="off"><h1>Accès réservé au service RH</h1><p>Saisissez le code RH pour utiliser l’outil de génération de documents.</p><input id="gateCode" type="password" inputmode="numeric" autocomplete="off" aria-label="Code RH" required><button type="submit" id="gateBtn">Entrer</button><div class="err" id="gateErr" role="alert"></div></form></div>
 <header class="top"><div class="in">
   <h1>Contrat de travail — CDI temps plein</h1>
   <p>Groupe Edgard · Service RH · la trame du contrat est conservée, seules les zones variables changent</p>
@@ -1742,6 +1752,24 @@ function docxPlan(C){return {
     else $('socFields').classList.add('empty');
     refresh();
   });
+
+  /* ---- Accès RH : code vérifié côté serveur (webhook auth-login), jeton de session ---- */
+  (function () {
+    const URL_LOGIN = 'https://edgard-opticiens.app.n8n.cloud/webhook/auth-login', KEY = 'cdi_rh_session';
+    const unlock = () => document.body.classList.remove('locked');
+    try { const s = JSON.parse(sessionStorage.getItem(KEY) || 'null'); if (s && s.role === 'RH' && s.token && s.expire > Date.now()) { unlock(); return; } } catch (e) {}
+    const form = document.getElementById('gateForm'), err = document.getElementById('gateErr'), btn = document.getElementById('gateBtn'), inp = document.getElementById('gateCode');
+    form.addEventListener('submit', async ev => {
+      ev.preventDefault(); err.textContent = ''; btn.disabled = true;
+      try {
+        const r = await fetch(URL_LOGIN, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: 'RH', code: inp.value.trim() }) });
+        const j = await r.json();
+        if (j && j.ok && j.token && j.role === 'RH') { try { sessionStorage.setItem(KEY, JSON.stringify({ token: j.token, role: 'RH', expire: Math.min(j.expire, Date.now() + 12 * 3600e3) })); } catch (e) {} inp.value = ''; unlock(); }
+        else err.textContent = j && j.error === 'verrouille' ? 'Trop d’essais : réessayez dans ' + (j.minutes || 15) + ' min.' : 'Code incorrect.';
+      } catch (e) { err.textContent = 'Connexion impossible. Vérifiez votre réseau.'; }
+      btn.disabled = false;
+    });
+  })();
   window.__cdi = { readForm, refresh, makeDoc, assets };
 })();
 </script>
